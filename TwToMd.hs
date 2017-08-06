@@ -79,11 +79,18 @@ wikilinkReplacer = do
   string "]]"
   return (printf "[%s](%s.html)" text text)
 
+escapeReplacer :: Parser String
+escapeReplacer = do
+  string "\"\"\""
+  text <- many1 (noneOf "\"")
+  string "\"\"\""
+  return text
+
 listReplacer :: Parser String
 listReplacer = do
   n <- newline
   s <- many1 (oneOf "*#")
-  return ([n] ++ (replicate (2*(length s - 1)) ' ') ++
+  return ([n] ++ (replicate (4*(length s - 1)) ' ') ++
             case (last s) of
               '*' -> "+"
               '#' -> "1.")
@@ -126,11 +133,11 @@ twToMd date s =
     let 
         (title, body, tags) = extractTitleAndTags s
         tagString = intercalate ", " tags
-        s' = body |> foldIterate replaceParse [listReplacer, italicsReplacer, boldReplacer, quoteReplacer, linkReplacer, wikilinkReplacer, headingReplacer,
-                                               simpleR "\n&1.8217" "'",
-                                               simpleR "\n&1.8220" "\"",
-                                               simpleR "\n&1.8221" "\"",
-                                               simpleR "\n&1.8230" "..."]
+        simpReplacers = [simpleR "\n&\n#8217;" "'",
+                         simpleR "\n&\n#8220;" "\"",
+                         simpleR "\n&\n#8221;" "\"",
+                         simpleR "\n&\n#8230;" "..."]
+        s' = body |> foldIterate replaceParse (simpReplacers++[listReplacer, italicsReplacer, boldReplacer, quoteReplacer, linkReplacer, wikilinkReplacer, headingReplacer, escapeReplacer])
     in
       (printf header title date date tagString)++"\n"++s'
 
