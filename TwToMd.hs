@@ -43,10 +43,11 @@ replaceParse p contents = justParse (replaceParser p) contents
 
 italicsReplacer :: Parser String
 italicsReplacer = do
+  c <- noneOf ":" --avoid http://
   string "//"
   text <- many1 (noneOf "/")
   string "//"
-  return (printf "*%s*" text)
+  return (c:(printf "*%s*" text))
 
 boldReplacer :: Parser String
 boldReplacer = do
@@ -103,17 +104,18 @@ headingReplacer = do
 
 urlReplacer :: Parser String
 urlReplacer = do
+  c <- noneOf "[|"
   http <- string "http"
   body <- many1 (noneOf " \n),")
   let url = http++body
-  return (printf "[%s](%s)" url url)
+  return (c:(printf "[%s](%s)" url url))
 
 imgReplacer :: Parser String
 imgReplacer = do
   string "[img["
   url <- many1 (noneOf "]")
   string "]]"
-  return (printf "![pic](%s)" url)
+  return (printf "![](%s)" url)
 --do after heading replacer so ! doesn't get replaced
 
 {-
@@ -154,7 +156,7 @@ twToMd date s =
                          simpleR "\n&\n#8230;" "...",
                          simpleR "<\n" "<",
                          simpleR "\n>" ">"]
-        s' = body |> foldIterate replaceParse (simpReplacers++[listReplacer, italicsReplacer, boldReplacer, quoteReplacer, linkReplacer, wikilinkReplacer, headingReplacer, escapeReplacer, urlReplacer, imgReplacer])
+        s' = body |> foldIterate replaceParse (simpReplacers++[urlReplacer, listReplacer, italicsReplacer, boldReplacer, quoteReplacer, linkReplacer, wikilinkReplacer, headingReplacer, escapeReplacer, imgReplacer])
     in
       (printf header title date date tagString)++"\n"++s'
 
