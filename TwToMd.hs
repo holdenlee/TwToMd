@@ -101,6 +101,21 @@ headingReplacer = do
   s <- many1 (char '!')
   return ([n] ++ (replicate (length s) '#'))
 
+urlReplacer :: Parser String
+urlReplacer = do
+  http <- string "http"
+  body <- many1 (noneOf " \n),")
+  let url = http++body
+  return (printf "[%s](%s)" url url)
+
+imgReplacer :: Parser String
+imgReplacer = do
+  string "[img["
+  url <- many1 (noneOf "]")
+  string "]]"
+  return (printf "![pic](%s)" url)
+--do after heading replacer so ! doesn't get replaced
+
 {-
 extractTitleAndTags :: Parser (String, [String])
 extractTitleAndTags = do
@@ -136,8 +151,10 @@ twToMd date s =
         simpReplacers = [simpleR "\n&\n#8217;" "'",
                          simpleR "\n&\n#8220;" "\"",
                          simpleR "\n&\n#8221;" "\"",
-                         simpleR "\n&\n#8230;" "..."]
-        s' = body |> foldIterate replaceParse (simpReplacers++[listReplacer, italicsReplacer, boldReplacer, quoteReplacer, linkReplacer, wikilinkReplacer, headingReplacer, escapeReplacer])
+                         simpleR "\n&\n#8230;" "...",
+                         simpleR "<\n" "<",
+                         simpleR "\n>" ">"]
+        s' = body |> foldIterate replaceParse (simpReplacers++[listReplacer, italicsReplacer, boldReplacer, quoteReplacer, linkReplacer, wikilinkReplacer, headingReplacer, escapeReplacer, urlReplacer, imgReplacer])
     in
       (printf header title date date tagString)++"\n"++s'
 
